@@ -1,3 +1,19 @@
+"""
+This generates points of a gait.
+It has an inverse kinematics function.
+
+What a messy code....
+
+Usage example: https://youtu.be/d1rsFPUE2oc
+
+
+by Einsbon (Sunbin Kim)
+
+https://github.com/Einsbon
+https://www.youtube.com/channel/UCt7FZ-8uzV_jHJiKp3NlHvg
+https://blog.naver.com/einsbon
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -11,25 +27,30 @@ class WlakGenerator():
         self._motorDirection = [+1, +1, +1, -1, +1, +1, +1, -1, -1, +1, -1, -1]
         self._motorDirectionRight = [+1, +1, +1, -1, +1, +1]
         self._motorDirectionLeft = [+1, -1, -1, +1, -1, -1]
+        self._anklePlus = 0
         self._walkPoint0 = 0
         self._walkPoint1 = 0
         self._walkPoint2 = 0
         self._walkPoint3 = 0
-        #self._walkPoint1f = 0
-        #self._walkPoint2f = 0
-        self._walkPointStartRight = 0  # 오른쪽 발을 먼저 내미는 것을 기준으로 함. 그때의 오른쪽 발의 지점.
-        self._walkPointStartLeft = 0  # 오른쪽 발을 먼저 내미는 것을 기준으로 함. 그때의 왼쪽 발의 지점.
-        self._walkPointEndRight = 0  # 오른쪽 발을 디디면서 끝나는 것을 기준으로 함. 그때의 오른쪽 발의 지점.
-        self._walkPointEndLeft = 0  # 오른쪽 발을 디디면서 끝나는 것을 기준으로 함. 그때의 왼쪽 발의 지점.
+        # self._walkPoint1f = 0
+        # self._walkPoint2f = 0
+        self._walkPointStartRight = 0  # 오른쪽 발을 먼저 내밈. 그때의 오른쪽 발.
+        self._walkPointStartLeft = 0  # 오른쪽쪽 발을 먼저 내밈. 그때의 왼쪽 발.
+        self._walkPointEndRight = 0  # 오른쪽 발을 디디면서 끝남. 그때의 오른쪽 발.
+        self._walkPointEndLeft = 0  # 오른쪽 발을 디디면서 끝남. 그때의 왼쪽 발.
 
         self._walkPoint0Inverse = 0
         self._walkPoint1Inverse = 0
         self._walkPoint2Inverse = 0
         self._walkPoint3Inverse = 0
-        #self._walkPoint1fInverse = 0
-        #self._walkPoint2fInverse = 0
-        self._walkPointStartInverse = 0
-        self._walkPointEndInverse = 0
+        # self._walkPoint1fInverse = 0
+        # self._walkPoint2fInverse = 0
+
+        self._walkPointRightStep = 0
+        self._walkPointLeftStep = 0
+
+        self._walkPointRightStepInverse = 0
+        self._walkPointLeftStepInverse = 0
 
         self._walkPointStartRightInverse = 0  # 왼쪽으로 sway 했다가 오른발을 먼저 내밈.
         self._walkPointStartLeftInverse = 0  # 오른쪽으로 sway 했다가 왼발을 먼저 내밈.
@@ -84,52 +105,143 @@ class WlakGenerator():
 
     def generate(self):
         walkPoint = self._bodyMovePoint*2+self._legMovePoint*2
-        walkPointXYZ = np.zeros((4, 3, walkPoint))
-
-        periodStart0 = 0
-        periodStart1 = self._bodyMovePoint
-        periodStart2 = self._bodyMovePoint+self._legMovePoint
-        periodStart3 = self._bodyMovePoint+self._bodyMovePoint+self._legMovePoint
+        trajectoryLength = self._l*(2*self._bodyMovePoint + self._legMovePoint) / \
+            (self._bodyMovePoint + self._legMovePoint)
+        print('trajectoryLength')
+        print(trajectoryLength)
 
         walkPoint0 = np.zeros((3, self._bodyMovePoint))
         walkPoint1 = np.zeros((3, self._legMovePoint))
         walkPoint2 = np.zeros((3, self._bodyMovePoint))
         walkPoint3 = np.zeros((3, self._legMovePoint))
 
-        walkPointStartRight = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
-        walkPointStartLeft = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
-        walkPointEndRight = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
-        walkPointEIndRight = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
+        self._walkPointStartRight = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
+        self._walkPointStartLeft = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
+        self._walkPointEndRight = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
+        self._walkPointEndLeft = np.zeros((3, self._bodyMovePoint+self._legMovePoint))
 
         for i in range(self._bodyMovePoint):
-            t = i/(walkPoint-self._legMovePoint)
-            walkPoint0[0][i] = -self._l*(t-0.5)
+            t = (i+1)/(walkPoint-self._legMovePoint)
+            walkPoint0[0][i] = -trajectoryLength*(t-0.5)
             walkPoint0[2][i] = self._sit
-            walkPoint0[1][i] = self._swayBody*math.sin(2 * math.pi*((i-self._swayShift)/walkPoint))
+            walkPoint0[1][i] = self._swayBody*math.sin(2 * math.pi*((i+1-self._swayShift)/walkPoint))
 
         for i in range(self._legMovePoint):
-            t = (i + self._bodyMovePoint)/(walkPoint-self._legMovePoint)
-            walkPoint1[0][i] = -self._l*(t-0.5)
+            t = (i+1 + self._bodyMovePoint)/(walkPoint-self._legMovePoint)
+            walkPoint1[0][i] = -trajectoryLength*(t-0.5)
             walkPoint1[2][i] = self._sit
             walkPoint1[1][i] = self._swayBody * \
-                math.sin(2 * math.pi*((i + self._bodyMovePoint-self._swayShift)/walkPoint))
+                math.sin(2 * math.pi*((i + 1 + self._bodyMovePoint-self._swayShift)/walkPoint))
 
         for i in range(self._bodyMovePoint):
-            t = (i + self._bodyMovePoint+self._legMovePoint)/(walkPoint-self._legMovePoint)
-            walkPoint2[0][i] = -self._l*(t-0.5)
+            t = (i + 1 + self._bodyMovePoint+self._legMovePoint)/(walkPoint-self._legMovePoint)
+            walkPoint2[0][i] = -trajectoryLength*(t-0.5)
             walkPoint2[2][i] = self._sit
             walkPoint2[1][i] = self._swayBody * \
-                math.sin(2 * math.pi*((i + self._bodyMovePoint+self._legMovePoint-self._swayShift)/walkPoint))
+                math.sin(2 * math.pi*((i + 1 + self._bodyMovePoint+self._legMovePoint-self._swayShift)/walkPoint))
 
         for i in range(self._legMovePoint):
-            t = i / self._legMovePoint
+            t = (i+1) / self._legMovePoint
             sin_tpi = math.sin(t * math.pi)
 
             walkPoint3[0][i] = (2 * t - 1 + (1-t) * self._weightStart * -sin_tpi +
-                                t * self._weightEnd * sin_tpi) * self._l / 2
+                                t * self._weightEnd * sin_tpi) * trajectoryLength / 2
             walkPoint3[2][i] = math.sin(t * math.pi) * self._h + self._sit
             walkPoint3[1][i] = math.sin(t * math.pi) * self._swayFoot + self._swayBody * \
-                math.sin(2 * math.pi*((i+walkPoint-self._legMovePoint-self._swayShift)/walkPoint))
+                math.sin(2 * math.pi*((i+1+walkPoint-self._legMovePoint-self._swayShift)/walkPoint))
+
+        # 시작 동작 만들기
+        for i in range(self._bodyMovePoint-self._swayShift):
+            t = (i+1)/self._bodyMovePoint
+            self._walkPointStartRight[0][i] = 0
+            self._walkPointStartRight[2][i] = self._sit
+
+            self._walkPointStartLeft[0][i] = 0
+            self._walkPointStartLeft[2][i] = self._sit
+        for i in range(self._legMovePoint):
+            t = (i+1)/self._legMovePoint
+            t2 = (i+1)/(self._legMovePoint+self._swayShift)
+            sin_tpi = math.sin(t * math.pi)
+
+            self._walkPointStartRight[2][i+self._bodyMovePoint -
+                                         self._swayShift] = math.sin(t * math.pi) * self._h + self._sit
+            self._walkPointStartRight[0][i+self._bodyMovePoint - self._swayShift] = (
+                2 * t + (1-t) * self._weightStart * -sin_tpi + t * self._weightEnd * sin_tpi) * trajectoryLength / 4
+            self._walkPointStartLeft[0][i+self._bodyMovePoint-self._swayShift] = (math.cos(
+                t2*math.pi/2)-1) * trajectoryLength * self._legMovePoint/(self._bodyMovePoint*2+self._legMovePoint)/2
+            self._walkPointStartLeft[0][i+self._bodyMovePoint-self._swayShift] = (math.cos(t2*math.pi/2)-1) * trajectoryLength * (
+                (self._swayShift+self._bodyMovePoint+self._legMovePoint)/(self._bodyMovePoint*2+self._legMovePoint)-0.5)
+
+            self._walkPointStartLeft[2][i+self._bodyMovePoint-self._swayShift] = self._sit
+
+        for i in range(self._swayShift):
+            t2 = (i+1+self._legMovePoint)/(self._legMovePoint+self._swayShift)
+
+            self._walkPointStartRight[0][i+self._legMovePoint+self._bodyMovePoint-self._swayShift] = - \
+                trajectoryLength*((i+1)/(walkPoint-self._legMovePoint)-0.5)
+            self._walkPointStartRight[2][i+self._legMovePoint+self._bodyMovePoint-self._swayShift] = self._sit
+
+            self._walkPointStartLeft[0][i+self._legMovePoint+self._bodyMovePoint-self._swayShift] = - \
+                trajectoryLength*((i + 1 + self._bodyMovePoint+self._legMovePoint)/(walkPoint-self._legMovePoint)-0.5)
+
+            self._walkPointStartLeft[0][i+self._legMovePoint+self._bodyMovePoint-self._swayShift] = (math.cos(t2*math.pi/2)-1) * trajectoryLength * (
+                (self._swayShift+self._bodyMovePoint+self._legMovePoint)/(self._bodyMovePoint*2+self._legMovePoint)-0.5)
+
+            self._walkPointStartLeft[2][i+self._legMovePoint+self._bodyMovePoint-self._swayShift] = self._sit
+
+        for i in range(self._bodyMovePoint+self._legMovePoint):
+            t = (i+1)/(self._bodyMovePoint+self._legMovePoint)
+            #self._walkPointStartRight[1][i] = -self._swayBody * math.sin(t*math.pi) * math.sin(t*math.pi)
+            #self._walkPointStartLeft[1][i] = self._swayBody * math.sin(t*math.pi) * math.sin(t*math.pi)
+            if t < 1/4:
+                self._walkPointStartRight[1][i] = -self._swayBody * \
+                    (math.sin(t*math.pi) - (1-math.sin(math.pi*2*t))*(math.sin(4*t*math.pi)/4))
+                self._walkPointStartLeft[1][i] = self._swayBody * \
+                    (math.sin(t*math.pi) - (1-math.sin(math.pi*2*t))*(math.sin(4*t*math.pi)/4))
+            else:
+                self._walkPointStartRight[1][i] = -self._swayBody * math.sin(t*math.pi)
+                self._walkPointStartLeft[1][i] = self._swayBody * math.sin(t*math.pi)
+
+        # 마무리 동작 만들기. 왼발이 뜸. 그러나 둘다 오른쪽다리 기준
+        for i in range(self._bodyMovePoint-self._swayShift):
+            self._walkPointEndRight[0][i] = -trajectoryLength*((i+1+self._swayShift)/(walkPoint-self._legMovePoint)-0.5)
+            self._walkPointEndRight[2][i] = self._sit
+
+            self._walkPointEndLeft[0][i] = -trajectoryLength * \
+                ((i + 1 + self._swayShift + self._bodyMovePoint+self._legMovePoint)/(walkPoint-self._legMovePoint)-0.5)
+            self._walkPointEndLeft[2][i] = self._sit
+        for i in range(self._legMovePoint):
+            t = (i+1)/self._legMovePoint
+            sin_tpi = math.sin(t * math.pi)
+
+            self._walkPointEndRight[0][i+self._bodyMovePoint-self._swayShift] = (math.sin(t*math.pi/2)-1) * trajectoryLength * (
+                (self._bodyMovePoint)/(self._bodyMovePoint*2+self._legMovePoint)-0.5)
+            self._walkPointEndRight[2][i+self._bodyMovePoint-self._swayShift] = self._sit
+
+            self._walkPointEndLeft[0][i+self._bodyMovePoint-self._swayShift] = (
+                2 * t-2 + (1-t) * self._weightStart * -sin_tpi + t * self._weightEnd * sin_tpi) * trajectoryLength / 4
+            self._walkPointEndLeft[2][i+self._bodyMovePoint -
+                                      self._swayShift] = math.sin(t * math.pi) * self._h + self._sit
+        for i in range(self._swayShift):
+            self._walkPointEndRight[0][i+self._bodyMovePoint+self._legMovePoint-self._swayShift] = 0
+            self._walkPointEndRight[2][i+self._bodyMovePoint+self._legMovePoint-self._swayShift] = self._sit
+
+            self._walkPointEndLeft[0][i+self._bodyMovePoint+self._legMovePoint-self._swayShift] = 0
+            self._walkPointEndLeft[2][i+self._bodyMovePoint+self._legMovePoint-self._swayShift] = self._sit
+
+        for i in range(self._bodyMovePoint+self._legMovePoint):
+            t = 1 - (i+1)/(self._bodyMovePoint+self._legMovePoint)
+
+            if t < 1/4:
+                self._walkPointEndRight[1][i] = self._swayBody * \
+                    (math.sin(t*math.pi) - (1-math.sin(math.pi*2*t))*(math.sin(4*t*math.pi)/4))
+                self._walkPointEndLeft[1][i] = -self._swayBody * \
+                    (math.sin(t*math.pi) - (1-math.sin(math.pi*2*t))*(math.sin(4*t*math.pi)/4))
+            else:
+                self._walkPointEndRight[1][i] = self._swayBody * math.sin(t*math.pi)
+                self._walkPointEndLeft[1][i] = -self._swayBody * math.sin(t*math.pi)
+
+        # 추가 파라미터의 조정
 
         if self._incline != 0:
             walkPoint0[2] = walkPoint0[2] + walkPoint0[0]*self._incline
@@ -153,8 +265,10 @@ class WlakGenerator():
         self._walkPoint2 = walkPoint2
         self._walkPoint3 = walkPoint3
 
-        self._walkPointStartRight = walkPointStartRight
-        self._walkPointStartLeft = walkPointStartLeft
+        self._walkPointRightStep = np.column_stack(
+            [walkPoint0[:, self._swayShift:], walkPoint1, walkPoint2[:, :self._swayShift]])
+        self._walkPointLeftStep = np.column_stack(
+            [walkPoint2[:, self._swayShift:], walkPoint3, walkPoint0[:, :self._swayShift]])
 
     def inverseKinematics(self, point, isRightLeg):
         inverseAngle = np.zeros((point[0].size, 6))
@@ -192,22 +306,50 @@ class WlakGenerator():
         return inverseAngle
 
     def showGaitPoint2D(self):
-        plt.scatter(self._walkPoint0[0], self._walkPoint0[2])
-        plt.scatter(self._walkPoint1[0], self._walkPoint1[2])
-        plt.scatter(self._walkPoint2[0], self._walkPoint2[2])
-        plt.scatter(self._walkPoint3[0], self._walkPoint3[2])
+        plt.plot(self._walkPoint0[0], self._walkPoint0[2], 'o-', c='red',  ms=7, lw=5)
+        plt.plot(self._walkPoint1[0], self._walkPoint1[2], 'o-', c='blue', ms=7, lw=5)
+        plt.plot(self._walkPoint2[0], self._walkPoint2[2], 'o-', c='red',  ms=7, lw=5)
+        plt.plot(self._walkPoint3[0], self._walkPoint3[2], 'o-', c='blue', ms=7, lw=5)
+
+        plt.plot(self._walkPointStartRight[0], self._walkPointStartRight[2], '*-')
+        plt.plot(self._walkPointStartLeft[0], self._walkPointStartLeft[2],   '*-')
+        plt.plot(self._walkPointEndRight[0], self._walkPointEndRight[2],     '*-')
+        plt.plot(self._walkPointEndLeft[0], self._walkPointEndLeft[2],       '*-')
+
+        plt.show()
+
+    def showGaitPoint2DTop(self):
+        plt.plot(self._walkPoint0[0], self._walkPoint0[1], 'o-')
+        plt.plot(self._walkPoint1[0], self._walkPoint1[1], 'o-')
+        plt.plot(self._walkPoint2[0], self._walkPoint2[1], 'o-')
+        plt.plot(self._walkPoint3[0], self._walkPoint3[1], 'o-')
+
+        plt.plot(self._walkPointStartRight[0], self._walkPointStartRight[1], '.-')
+        plt.plot(self._walkPointStartLeft[0], self._walkPointStartLeft[1], '.-')
+
+        plt.plot(self._walkPointEndRight[0], self._walkPointEndRight[1], '+-')
+        plt.plot(self._walkPointEndLeft[0], self._walkPointEndLeft[1], '+-')
+
         plt.show()
 
     def showGaitPoint3D(self):
         fig = plt.figure(1)
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot(self._walkPoint0[0], self._walkPoint0[1], self._walkPoint0[2], 'o')  # , 'bo')
-        ax.plot(self._walkPoint1[0], self._walkPoint1[1], self._walkPoint1[2], 'o')  # , 'co')
-        ax.plot(self._walkPoint2[0], self._walkPoint2[1], self._walkPoint2[2], 'o')  # , 'go')
-        ax.plot(self._walkPoint3[0], self._walkPoint3[1], self._walkPoint3[2], 'o')  # , 'yo')
 
-        ax.plot(self._walkPointStartRight[0], self._walkPointStartRight[1], self._walkPointStartRight[2], 'o')  # , 'yo')
-        ax.plot(self._walkPointStartLeft[0], self._walkPointStartLeft[1], self._walkPointStartLeft[2], 'o')  # , 'yo')
+        ax.plot(self._walkPointRightStep[0], self._walkPointRightStep[1], self._walkPointRightStep[2], 'co-', lw=10, ms=6)
+        ax.plot(self._walkPointLeftStep[0], self._walkPointLeftStep[1], self._walkPointLeftStep[2], 'mo-', lw=10, ms=5)
+
+        ax.plot(self._walkPoint0[0], self._walkPoint0[1], self._walkPoint0[2], 'o')
+        ax.plot(self._walkPoint1[0], self._walkPoint1[1], self._walkPoint1[2], 'o')
+        ax.plot(self._walkPoint2[0], self._walkPoint2[1], self._walkPoint2[2], 'o')
+        ax.plot(self._walkPoint3[0], self._walkPoint3[1], self._walkPoint3[2], 'o')
+
+        ax.plot(self._walkPointStartRight[0], self._walkPointStartRight[1], self._walkPointStartRight[2], '*-')
+        ax.plot(self._walkPointStartLeft[0], self._walkPointStartLeft[1], self._walkPointStartLeft[2], '*-')
+
+        ax.plot(self._walkPointEndRight[0], self._walkPointEndRight[1], self._walkPointEndRight[2], '+-')
+        ax.plot(self._walkPointEndLeft[0], self._walkPointEndLeft[1], self._walkPointEndLeft[2], '+-')
+
         plt.show()
 
     def inverseKinematicsAll(self):
@@ -221,18 +363,31 @@ class WlakGenerator():
         walkPoint2Inverse_left = self.inverseKinematics(self._walkPoint2, False)
         walkPoint3Inverse_left = self.inverseKinematics(self._walkPoint3, False)
 
+        walkpointstartRight_rightLeg_inverse = self.inverseKinematics(self._walkPointStartRight, True)
+        walkpointstartRight_leftLeg_inverse = self.inverseKinematics(self._walkPointStartLeft, False)
+
+        walkpointstartLeft_rightLeg_inverse = self.inverseKinematics(self._walkPointStartLeft, True)
+        walkpointstartLeft_leftLeg_inverse = self.inverseKinematics(self._walkPointStartRight, False)
+
         self._walkPoint0Inverse = np.column_stack([walkPoint0Inverse_right, walkPoint2Inverse_left])
         self._walkPoint1Inverse = np.column_stack([walkPoint1Inverse_right, walkPoint3Inverse_left])
         self._walkPoint2Inverse = np.column_stack([walkPoint2Inverse_right, walkPoint0Inverse_left])
         self._walkPoint3Inverse = np.column_stack([walkPoint3Inverse_right, walkPoint1Inverse_left])
 
+        self._walkPointStartRightInverse = np.column_stack(
+            [walkpointstartRight_rightLeg_inverse, walkpointstartRight_leftLeg_inverse])
+        self._walkPointStartLeftInverse = np.column_stack(
+            [walkpointstartLeft_rightLeg_inverse, walkpointstartLeft_leftLeg_inverse])
+        # self._walkPointStartLeftInverse = walkpointstartLeft_inverse
+
 
 def main():
     walk = WlakGenerator()
-    walk.setWalkParameter(bodyMovePoint=12, legMovePoint=12, h=50, l=130, sit=30, swayBody=55, swayFoot=0,
-                          bodyPositionXPlus=0, swayShift=0, weightStart=0.4, weightEnd=0.7, swayPlus=0, walkTime=0.06, damping=0.0, incline=0.0)
+    walk.setWalkParameter(bodyMovePoint=16, legMovePoint=16, h=50, l=80, sit=30, swayBody=60, swayFoot=0,
+                          bodyPositionXPlus=0, swayShift=6, weightStart=0.4, weightEnd=0.7, swayPlus=0, walkTime=0.06, damping=0.0, incline=0.0)
     walk.generate()
     walk.showGaitPoint2D()
+    walk.showGaitPoint2DTop()
     walk.showGaitPoint3D()
 
 
