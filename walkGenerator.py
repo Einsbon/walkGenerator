@@ -13,7 +13,6 @@ https://github.com/Einsbon
 https://www.youtube.com/channel/UCt7FZ-8uzV_jHJiKp3NlHvg
 https://blog.naver.com/einsbon
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -243,19 +242,27 @@ class WlakGenerator():
 
         # 추가 파라미터의 조정
 
-        if self._incline != 0:
+        if self._incline != 0:  # 기울기. 계단 등에서 사용.
             walkPoint0[2] = walkPoint0[2] + walkPoint0[0]*self._incline
             walkPoint1[2] = walkPoint1[2] + walkPoint1[0]*self._incline
             walkPoint2[2] = walkPoint2[2] + walkPoint2[0]*self._incline
             walkPoint3[2] = walkPoint3[2] + walkPoint3[0]*self._incline
+            self._walkPointStartRight[2] = self._walkPointStartRight[2] + self._walkPointStartRight[0]*self._incline
+            self._walkPointStartLeft[2] = self._walkPointStartLeft[2] + self._walkPointStartLeft[0]*self._incline
+            self._walkPointEndRight[2] = self._walkPointEndRight[2] + self._walkPointEndRight[0]*self._incline
+            self._walkPointEndLeft[2] = self._walkPointEndLeft[2] + self._walkPointEndLeft[0]*self._incline
 
-        if self._bodyPositionXPlus != 0:
+        if self._bodyPositionXPlus != 0:  # 허리 앞뒤 위치 조절
             walkPoint0[0] = walkPoint0[0] - self._bodyPositionXPlus
             walkPoint1[0] = walkPoint1[0] - self._bodyPositionXPlus
             walkPoint2[0] = walkPoint2[0] - self._bodyPositionXPlus
             walkPoint3[0] = walkPoint3[0] - self._bodyPositionXPlus
+            self._walkPointStartRight[0] = self._walkPointStartRight[0] - self._bodyPositionXPlus
+            self._walkPointStartLeft[0] = self._walkPointStartLeft[0] - self._bodyPositionXPlus
+            self._walkPointEndRight[0] = self._walkPointEndRight[0] - self._bodyPositionXPlus
+            self._walkPointEndLeft[0] = self._walkPointEndLeft[0] - self._bodyPositionXPlus
 
-        if self._damping != 0:
+        if self._damping != 0:  # 댐핑 조절
             dampHeight = (walkPoint3[2][-1]-walkPoint0[2][0])/2
             walkPoint0[2][0] = walkPoint0[2][0]+dampHeight*self._damping
             walkPoint2[2][0] = walkPoint2[2][0]-dampHeight*self._damping
@@ -369,6 +376,18 @@ class WlakGenerator():
         walkpointstartLeft_rightLeg_inverse = self.inverseKinematics(self._walkPointStartLeft, True)
         walkpointstartLeft_leftLeg_inverse = self.inverseKinematics(self._walkPointStartRight, False)
 
+        walkPointEndRight_rightLeg_inverse = self.inverseKinematics(self._walkPointEndRight, True)
+        walkPointEndRight_leftleg_inverse = self.inverseKinematics(self._walkPointEndLeft, False)
+
+        walkpointEndLeft_rightLeg_inverse = self.inverseKinematics(self._walkPointEndLeft, True)
+        walkpointEndLeft_leftleg_inverse = self.inverseKinematics(self._walkPointEndRight, False)
+
+        walkPoint_rightStep_rightLeg = self.inverseKinematics(self._walkPointRightStep, True)
+        walkPoint_rightStep_leftLeg = self.inverseKinematics(self._walkPointLeftStep, False)
+
+        walkPoint_leftStep_rightLeg = self.inverseKinematics(self._walkPointLeftStep, True)
+        walkPoint_leftStep_leftLeg = self.inverseKinematics(self._walkPointRightStep, False)
+
         self._walkPoint0Inverse = np.column_stack([walkPoint0Inverse_right, walkPoint2Inverse_left])
         self._walkPoint1Inverse = np.column_stack([walkPoint1Inverse_right, walkPoint3Inverse_left])
         self._walkPoint2Inverse = np.column_stack([walkPoint2Inverse_right, walkPoint0Inverse_left])
@@ -378,13 +397,18 @@ class WlakGenerator():
             [walkpointstartRight_rightLeg_inverse, walkpointstartRight_leftLeg_inverse])
         self._walkPointStartLeftInverse = np.column_stack(
             [walkpointstartLeft_rightLeg_inverse, walkpointstartLeft_leftLeg_inverse])
+
+        self._walkPointEndRightInverse = np.column_stack([walkPointEndRight_rightLeg_inverse, walkPointEndRight_leftleg_inverse])
+        self._walkPointEndLeftInverse = np.column_stack([walkpointEndLeft_rightLeg_inverse, walkpointEndLeft_leftleg_inverse])
         # self._walkPointStartLeftInverse = walkpointstartLeft_inverse
+        self._walkPointRightStepInverse = np.column_stack([walkPoint_rightStep_rightLeg, walkPoint_rightStep_leftLeg])
+        self._walkPointLeftStepInverse = np.column_stack([walkPoint_leftStep_rightLeg, walkPoint_leftStep_leftLeg])
 
 
 def main():
     walk = WlakGenerator()
     walk.setWalkParameter(bodyMovePoint=16, legMovePoint=16, h=50, l=80, sit=30, swayBody=60, swayFoot=0,
-                          bodyPositionXPlus=0, swayShift=6, weightStart=0.4, weightEnd=0.7, swayPlus=0, walkTime=0.06, damping=0.0, incline=0.0)
+                          bodyPositionXPlus=0, swayShift=6, weightStart=0.4, weightEnd=0.7, swayPlus=0, walkTime=0.06, damping=0.0, incline=0.9)
     walk.generate()
     walk.showGaitPoint2D()
     walk.showGaitPoint2DTop()
