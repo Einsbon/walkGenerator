@@ -1,18 +1,16 @@
 """
 This generates points of a gait.
 It has an inverse kinematics function.
-
 What a messy code....
 
 Usage example: https://youtu.be/d1rsFPUE2oc
 
-
 by Einsbon (Sunbin Kim)
-
-https://github.com/Einsbon
-https://www.youtube.com/channel/UCt7FZ-8uzV_jHJiKp3NlHvg
-https://blog.naver.com/einsbon
+Github:  https://github.com/Einsbon
+Youtube: https://www.youtube.com/channel/UCt7FZ-8uzV_jHJiKp3NlHvg
+Blog:    https://blog.naver.com/einsbon
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -20,7 +18,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import math
 
 
-class WlakGenerator():
+class WalkGenerator():
     def __init__(self):
         #                        0   1   2   3   4   5   6   7   8   9  10  11
         self._motorDirection = [+1, +1, +1, -1, +1, +1, +1, -1, -1, +1, -1, -1]
@@ -61,7 +59,7 @@ class WlakGenerator():
         self._walkPoint2AnkleX = 0
         self._walkPoint3AnkleX = 0
 
-        # 길이 단위: mm
+        # 로봇의 다리 길이 설정. 길이 단위: mm
         self._pelvic_interval = 70.5
         self._legUp_length = 110
         self._legDown_length = 110
@@ -78,14 +76,14 @@ class WlakGenerator():
         self._weightStart = 0
         self._weightEnd = 0
         self._swayPlus = 0
-        self._walkTime = 0
+        self._stepTime = 0
         self._bodyPositionXPlus = 0
         self._damping = 0
 
     def setRobotParameter(self, pelvic_interval, leg_up_length, leg_down_length, foot_to_grount, foot_to_heel, foot_to_toe):
         pass
 
-    def setWalkParameter(self, bodyMovePoint, legMovePoint, h, l, sit, swayBody, swayFoot, bodyPositionXPlus, swayShift, weightStart, weightEnd, swayPlus, walkTime, damping, incline):
+    def setWalkParameter(self, bodyMovePoint, legMovePoint, h, l, sit, swayBody, swayFoot, bodyPositionXPlus, swayShift, weightStart, weightEnd, swayPlus, stepTime, damping, incline):
         self._bodyMovePoint = bodyMovePoint
         self._legMovePoint = legMovePoint
         self._h = h
@@ -97,7 +95,7 @@ class WlakGenerator():
         self._weightStart = weightStart
         self._weightEnd = weightEnd
         self._swayPlus = swayPlus
-        self._walkTime = walkTime
+        self._stepTime = stepTime
         self._bodyPositionXPlus = bodyPositionXPlus  # +면 몸을 앞으로, -면 몸을 뒤로 하고 걸음.
         self._damping = damping
         self._incline = incline
@@ -406,9 +404,9 @@ class WlakGenerator():
 
 
 def main():
-    walk = WlakGenerator()
+    walk = WalkGenerator()
     walk.setWalkParameter(bodyMovePoint=16, legMovePoint=16, h=50, l=80, sit=30, swayBody=60, swayFoot=0,
-                          bodyPositionXPlus=0, swayShift=6, weightStart=0.4, weightEnd=0.7, swayPlus=0, walkTime=0.06, damping=0.0, incline=0.9)
+                          bodyPositionXPlus=0, swayShift=6, weightStart=0.4, weightEnd=0.7, swayPlus=0, stepTime=0.06, damping=0.0, incline=0.9)
     walk.generate()
     walk.showGaitPoint2D()
     walk.showGaitPoint2DTop()
